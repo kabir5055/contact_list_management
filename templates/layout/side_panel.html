@@ -1,0 +1,102 @@
+{% load static %}
+
+<div class="container" style="max-width: 100%;">
+    <div class="row">
+        <span>
+            <a id="add_new_contact" class="fa fa-plus btn neuEffect btn-lg" href="/addcontact/"><strong class="h5"> New</strong></a>
+        </span>
+    </div>
+    <div class="row m-5">
+        <span>
+            <button type="button" id="import" class="fa fa-upload btn neuEffect btn-lg" data-toggle="modal" data-target="#exampleModalCenter"><strong class="h5"> Import</strong></button>
+        </span>
+    </div>
+    <div class="row m-5">
+        <span>
+            <button type="button" id="export" class="fa fa-download btn neuEffect btn-lg" data-toggle="modal" data-target="#exportContactsModal"><strong class="h5"> Export</strong></button>
+        </span>
+    </div>
+    <div class="row m-5">
+        <span>
+            <a id="trash" class="fa fa-trash btn neuEffect btn-lg" href="/trashcontact/"><strong class="h5"> Trash</strong></a>
+        </span>
+    </div>
+</div>
+
+
+<!-- Import Contacts Modal -->
+<div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="exampleModalLongTitle">Import Contacts</h3>
+        <button type="button" id="import_modal_close_button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+        <form enctype="multipart/form-data" method="POST" id="import_contact_form">
+            {% csrf_token %}
+      <div class="modal-body text-center">
+            <h5>To import contacts, select a CSV file.</h5>
+            <label class="btn btn-lg" for="contacts_file" style="cursor: pointer;">Select File
+                <input class="ms-5 btn btn-sm btn-primary mx-auto" id="contacts_file" name="contacts_file"
+                       accept="text/csv" placeholder="Select File" required
+                       style="max-width: 65%;" type="file" value="">
+            </label>
+
+            <div id="modal_feedback"><div class="p-3 m-3 spinner-border text-secondary" role="status" id="import_contact_loader"></div></div>
+      </div>
+      <div class="" id="modal_footer">
+        <button type="button" class="btn neuEffect" style="font-weight: bold;" data-dismiss="modal">Close</button>
+        <input class="m-5 btn neuEffect" type="submit" value="Import" id="import_contact" style="font-weight: bold;">
+      </div>
+            <script>$('#import_contact_loader').hide()</script>
+        </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- Export Contacts Modal -->
+<div class="modal fade" id="exportContactsModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="exportModalLongTitle">Export Contacts</h3>
+        <button type="button" id="export_modal_close_button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body text-center">
+          <h4 class="font-bold">To Export all contact as csv click on export</h4>
+          <div id="export_modal_feedback"><div class="p-3 m-3 spinner-border text-secondary" role="status" id="export_contact_loader"></div></div>
+      </div>
+      <div class="">
+        <button type="button" class="m-3 btn btn-secondary" data-dismiss="modal">Close</button>
+        <button id="contact_export_api" class="m-3 btn btn-success" onclick="export_contact()">Export</button>
+      </div>
+    </div>
+  </div>
+    <script>
+
+
+
+        function export_contact(){
+            $('#export_contact_loader').show()
+            let login_info = document.cookie
+            .split(';')
+            .map(cookie => cookie.split('='))
+            .reduce((accumulator, [key, value]) => ({ ...accumulator, [key.trim()]: decodeURIComponent(value) }), {});
+
+            let export_link = "/export/contacts_export/" + login_info.slug + "/"
+            window.location = export_link
+
+            $("#export_modal_close_button").click()
+
+            $('#export_contact_loader').hide()
+        }
+
+
+
+    </script>
+</div>

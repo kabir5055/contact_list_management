@@ -1,0 +1,280 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}Contacts{% endblock %}
+
+{% block body %}
+
+<h1 class="m-5" id="log_info">Sign up or Sign in</h1>
+
+<div class="container" id="main_container">
+    <div class="row text-secondary" style="align-items: center;">
+        <div class="col">
+            <div class="row">
+                <div class="col">
+                    <span class="h4"><strong>Index</strong></span>
+                </div>
+                <div class="col">
+                    <span class="h4"><strong>Name</strong></span>
+                </div>
+                <div class="col">
+                    <span class="h4"><strong>email</strong></span>
+                </div>
+                <div class="col">
+                    <span class="h4"><strong>Phone</strong></span>
+                </div>
+            </div>
+        </div>
+        <div class="col" style="max-width: 20%;">
+            <div class="row">
+            <div class="col">
+                <span class="h4"><strong></strong></span>
+            </div>
+            <div class="col">
+                <span class="h4"><strong></strong></span>
+            </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<hr>
+
+<div class="container text-secondary" id="card">
+
+</div>
+<div class="spinner-border text-secondary" role="status" id="index_list_loader"></div>
+<div id="page_size_increase"></div>
+
+
+
+    <script>
+    $('#contract_list_head').hide()
+    $('#main_container').hide()
+    $('#index_list_loader').hide()
+
+    let x = document.cookie
+        .split(';')
+        .map(cookie => cookie.split('='))
+        .reduce((accumulator, [key, value]) => ({ ...accumulator, [key.trim()]: decodeURIComponent(value) }), {});
+
+    if(x.access){
+        $('#contract_list_head').show()
+        $('#main_container').show()
+        $('#log_info').hide()
+    }
+
+    function get_index_data(pageNumber){
+        if(pageNumber == ""){
+            return pageNumber
+        }
+        $.ajax({
+            type: "GET",
+            url: "/contact_list_api/" + pageNumber,
+            headers: {Authorization: 'Bearer ' + x.access},
+            data: "",
+            beforeSend : function(){
+                $('#index_list_loader').show()
+                $('#index_list_loader').addClass("p-5");
+            },
+            success: function(data){
+                 // console.log("Success Checking")
+                 // console.log(data)
+
+                 localStorage.setItem("count", data.counts);
+
+                 if(data.next != null){
+
+                    localStorage.setItem("nextPage", data.next.split('/')[4]);
+                 }
+                 else{
+                    localStorage.setItem("nextPage", "");
+                 }
+
+                data = data.results
+
+                if(data.length){
+                    for(var i = 0; i < data.length; i++){
+                        $('#card').append(`
+                            <div class="row hoverEffect rounded-pill full_contact" style="align-items: center;" id="${data[i].slug}" onmouseover="hover_on_display(this)" onmouseout="remove_on_mouseout(this)">
+                                <div class="col">
+                                    <a class="row" href="/details/${data[i].slug}/">
+                                        <div class="col my-auto">
+                                            <span class="index">${i + ((parseInt(pageNumber.split('=')[1])-1) * 20) + 1}</span>
+                                        </div>
+                                        <div class="col my-auto">
+                                            <span class="">${data[i].name}</span>
+                                        </div>
+                                        <div class="col col-4 my-auto text-wrap text-break">
+                                            <span class="">${data[i].email}</span>
+                                        </div>
+                                        <div class="col my-auto">
+                                            <span class="">${data[i].phone1}</span>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="col display_on_hover">
+                                    <div class="row">
+                                        <div class="col">
+                                            <button class="m-2 col btn neuEffect btn-sm fa fa-trash" id="${data[i].slug}" style="font-size: 18px;" onclick="delete_contact(this)"></button>
+                                        </div>
+                                        <div class="col">
+                                            <a class="m-2 col btn neuEffect btn-sm fa fa-share" href="/shear/${data[i].slug}/" style="font-size: 18px;"></a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `)
+                    }
+                }
+                else{
+                    $('#card').append(`
+                        <h3 class="fw-bold text-secondary">There is no contacts left!</h3>
+                    `)
+                }
+                // $('#page_size_increase').height($('#page_size_increase').height() - 1000);
+            },
+            complete : function(){
+                $('#index_list_loader').removeClass("p-5");
+                $('#index_list_loader').hide();
+                scroll_flag = true;
+            },
+            error: function(data){
+                console.log("Error Checking")
+                console.log(data)
+            }
+
+        });
+    }
+
+    get_index_data("?page=1");
+
+    let scroll_flag = true;
+
+    $(window).scroll(function() {
+       if($(window).scrollTop() + window.innerHeight == $(document).height() && scroll_flag) {
+           scroll_flag = false;
+           // $('#page_size_increase').height($('#page_size_increase').height() + 1000);
+           get_index_data(localStorage.getItem('nextPage'));
+       }
+    });
+
+        $('#form_search').submit(function(event){
+            event.preventDefault()
+
+        })
+
+        $('#search').click(function(){
+            input_data = {}
+            input_data['search_keywords'] = $('#search_keyword').val()
+
+            $.ajax({
+                type: "PUT",
+                url: "/search_contacts_api/",
+                headers: {Authorization: 'Bearer ' + x.access},
+                data: JSON.stringify(input_data),
+                beforeSend : function(){
+                    $('#index_list_loader').show();
+                    $('#index_list_loader').removeClass("invisible");
+                    $('#index_list_loader').addClass("p-5");
+                    $('#card').html('')
+                },
+                success: function(data){
+                    console.log("Success Checking search")
+                    console.log(data)
+
+                    localStorage.setItem("nextPage", "")
+
+                    if(data.length === 0){
+                        $('#card').append(`
+                            <h3 class="fw-bold text-secondary">Sorry No search result found!</h3>
+                        `)
+                    }
+                    else{
+                        $('#card').html('')
+                        for(var i = 0; i < data.length; i++){
+                            $('#card').append(`
+                                <div class="row hoverEffect rounded-pill full_contact" style="align-items: center;" onmouseover="hover_on_display(this)" onmouseout="remove_on_mouseout(this)">
+                                    <div class="col">
+                                        <a class="row" href="/details/${data[i].slug}/">
+                                            <div class="col my-auto">
+                                                <span class="index">${i + 1}</span>
+                                            </div>
+                                            <div class="col my-auto">
+                                                <span class="">${data[i].name}</span>
+                                            </div>
+                                            <div class="col col-4 my-auto text-wrap text-break">
+                                                <span class="">${data[i].email}</span>
+                                            </div>
+                                            <div class="col my-auto">
+                                                <span class="">${data[i].phone1}</span>
+                                            </div>
+                                        </a>
+                                    </div>
+                                    <div class="col display_on_hover">
+                                        <div class="row">
+                                            <div class="col">
+                                                <button class="m-2 col btn neuEffect btn-sm fa fa-trash" id="${data[i].slug}" style="font-size: 18px;" onclick="delete_contact(this)"></button>
+                                            </div>
+                                            <div class="col">
+                                                <a class="m-2 col btn neuEffect btn-sm fa fa-share" href="shear/${data[i].slug}/" style="font-size: 18px;"></a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `)
+                        }
+                    }
+                },
+                complete : function(){
+                    $('#index_list_loader').addClass("invisible");
+                    $('#index_list_loader').removeClass("p-5");
+                    $('#index_list_loader').hide();
+                },
+                error: function(data){
+                    console.log("Error Checking")
+                    console.log(data)
+                }
+            });
+        })
+
+        function delete_contact(slug){
+            $.ajax({
+                type: "PUT",
+                url: "/deletecontact_api/"+slug.id+"/",
+                headers: {Authorization: 'Bearer ' + x.access},
+                beforeSend : function(){
+                    $(slug).removeClass("fa fa-trash btn btn-sm")
+                    $(slug).addClass("spinner-border text-secondary")
+                },
+                //data: JSON.stringify(delete_data),
+                success: function(data){
+                    // alert("success")
+                    // alert(data.message)
+                    if(data.status == 200){
+                        // window.location = "/"
+                        $(slug).closest(".full_contact").hide('slow', function(){ $$(slug).closest(".full_contact").remove(); });
+                    }
+                },
+                complete: function(){
+                    $(slug).addClass("fa fa-trash btn btn-sm")
+                    $(slug).removeClass("spinner-border text-secondary")
+                },
+                error: function(data){
+                    console.log("error_delete")
+                    console.log(data)
+                }
+            });
+        }
+
+        function hover_on_display(data){
+            item = data.querySelector('.display_on_hover')
+            $(item).attr("style", "visibility: visible;")
+        }
+
+        function remove_on_mouseout(data){
+            item = data.querySelector('.display_on_hover')
+            $(item).attr("style", "")
+        }
+    </script>
+
+{% endblock %}
